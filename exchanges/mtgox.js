@@ -85,7 +85,7 @@ Trader.prototype.retry = function(method, args) {
 }
 
 Trader.prototype.checkUnauthorized = function(err) {
-  if(err = '[Error: Request failed with 403]')
+  if(err === '[Error: Request failed with 403]')
     throw 'It appears your ' + this.name + ' API key and secret are incorrect';
 }
 
@@ -102,6 +102,9 @@ Trader.prototype.getPortfolio = function(callback) {
     this.checkUnauthorized(err);
     if(err)
       return this.retry(this.getPortfolio, args);
+
+    if(!('Wallets' in result.data))
+      log.error('unable to get portfolio, do I have get_info rights?');
 
     var assets = [];
     _.each(result.data.Wallets, function(wallet, name) {
