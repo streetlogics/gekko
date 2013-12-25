@@ -13,7 +13,7 @@ config.tradingMethod = 'Exponential Moving Averages';
 // Exponential Moving Averages settings:
 config.EMA = {
   // timeframe per candle
-  interval: 60, // in minutes
+  interval: 3, // in minutes
   // EMA weight (α)
   // the higher the weight, the more smooth (and delayed) the line
   short: 10,
@@ -28,9 +28,9 @@ config.EMA = {
 // Monitor the live market
 config.normal = {
   enabled: true,
-  exchange: 'MtGox', // 'MtGox', 'BTCe', 'Bitstamp' or 'cexio'
+  exchange: 'btce', // 'MtGox', 'BTCe', 'Bitstamp' or 'cexio'
   currency: 'USD',
-  asset: 'BTC',
+  asset: 'PPC',
   tradingEnabled: false,
   key: 'your-key',
   secret: 'your-secret',
@@ -140,7 +140,7 @@ config.traders = [
   }
 ];
 
-config.debug = false; // for additional logging / debugging
+config.debug = true; // for additional logging / debugging
 
 module.exports = config;
 
