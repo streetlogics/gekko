@@ -1,8 +1,8 @@
 var Bitstamp = require("bitstamp");
-var util = require('../util.js');
+var util = require('../core/util.js');
 var _ = require('lodash');
 var moment = require('moment');
-var log = require('../log');
+var log = require('../core/log');
 
 var Trader = function(config) {
   if(_.isObject(config)) {
@@ -115,9 +115,8 @@ Trader.prototype.cancelOrder = function(order, callback) {
 // TODO: finish properly
 Trader.prototype.getTrades = function(since, callback, descending) {
   var process = function(err, result) {
-    // this.retry()
     if(err)
-      throw 'need to implement retry';
+      return this.retry(this.bitstamp.transactions, process);
 
     callback(null, result.reverse());
   };

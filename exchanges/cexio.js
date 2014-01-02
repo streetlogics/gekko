@@ -2,8 +2,8 @@ var CEXio = require('cexio'),
    moment = require('moment'),
     async = require('async'),
         _ = require('lodash'),
-     util = require('../util'),
-      log = require('../log');
+     util = require('../core/util'),
+      log = require('../core/log');
 
 var Trader = function(config) {
   this.user = config.username;
@@ -45,9 +45,6 @@ Trader.prototype.buy = function(amount, price, callback) {
   amount *= 100000000;
   amount = Math.floor(amount);
   amount /= 100000000;
-
-  // test placing orders which will not be filled
-  //price /=10; price = price.toFixed(8);
 
   log.debug('BUY', amount, 'GHS @', price, 'BTC');
 

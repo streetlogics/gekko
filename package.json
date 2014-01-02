@@ -7,6 +7,9 @@
     "bot",
     "bitcoin"
   ],
+  "scripts": {
+    "test": "scripts/run_unit_tests"
+  },
   "author": "Mike van Rossum <mike@mvr.me>",
   "dependencies": {
     "mtgox-apiv2": "1.0.x",
@@ -20,7 +23,11 @@
     "bitstamp": "0.1.x",
     "async": "0.2.x",
     "nedb": "*",
-    "line-reader": "0.2.x"
+    "line-reader": "0.2.x",
+    "irc": "0.3.6"
+  },
+  "devDependencies": {
+    "nodeunit": "0.8.2"
   },
   "engines": { "node": "0.10.x" },
   "repository": {

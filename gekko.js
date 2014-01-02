@@ -1,6 +1,6 @@
 /*
 
-  Gekko is a Bitcoin trading bot for Mt. Gox written 
+  Gekko is a Bitcoin trading bot for popular Bitcoin exchanges written 
   in node, it features multiple trading methods using 
   technical analysis.
 
@@ -16,114 +16,154 @@
 
 */
 
-// helpers
+var coreDir = './core/';
+var actorsDir = './actors/';
+
 var moment = require('moment');
 var _ = require('lodash');
-var util = require('./util');
-var log = require('./log');
 var async = require('async');
-var Manager = require('./portfolioManager');
-var exchangeChecker = require('./exchangeChecker');
 
-var config = util.getConfig();
+var util = require(coreDir + 'util');
+var log = require(coreDir + 'log');
 
-// var Consultant = require('./methods/' + config.tradingMethod.toLowerCase().split(' ').join('-'));
-
-log.info('I\'m gonna make you rich, Bud Fox.');
-log.info('Let me show you some ' + config.tradingMethod + '.\n\n');
+log.info('I\'m gonna make you rich, Bud Fox.', '\n\n');
 
 //
 // Normalize the configuration between normal & advanced.
 // 
+var config = util.getConfig();
 if(config.normal && config.normal.enabled) {
   // if the normal settings are enabled we overwrite the
   // watcher and traders set in the advanced zone
-  log.info('Using normal settings to monitor the live market');
   config.watch = config.normal;
   config.traders = [];
 
   if(config.normal.tradingEnabled)
-    config.traders.push( config.normal );
-  else
-    log.info('NOT trading with real money');
-} else {
-  log.info('Using advanced settings');
+    config.traders.push(config.normal);
 }
+// write config
+util.setConfig(config);
 
+var exchangeChecker = require(coreDir + 'exchangeChecker');
 // make sure the monitoring exchange is configured correctly for monitoring
 var invalid = exchangeChecker.cantMonitor(config.watch);
 if(invalid)
   throw invalid;
 
-// write config
-util.setConfig(config);
+// currently we only support a single 
+// market and a single advisor.
+var market;
+var advisor;
+var actors = [];
 
-// var TradeFetcher = require('./tradeFetcher.js');
-// var tradeFetcher = new TradeFetcher();
-var CM = require('./candleManager');
-var a = new CM;
-return;
+var setupMarket = function(next) {
+  var Market = require(coreDir + 'candleManager');
+  market = new Market;
+  next();
+}
 
-// implement a trading method to create a consultant, we pass it a config and a 
-// public mtgox object which the method can use to get data on past trades
-var consultant = new Consultant(watcher);
+// load each actor
+var loadActors = function(next) {
+  var actorSettings = require('./actors');
 
-// log advice
-var Logger = require('./logger');
-var logger = new Logger(_.extend(config.profitCalculator, config.watch));
-consultant.on('advice', logger.inform);
-if(config.profitCalculator.enabled)
-  consultant.on('advice', logger.trackProfits);
+  var iterator = function(actor, next) {
+    var actorConfig = config[actor.slug];
+    if(!actorConfig.enabled)
+      return next();
 
-//
-// Configure automatic traders based on advice,
-// after they are all prepared we continue.
-// 
-var managers = _.filter(config.traders, function(t) { return t.enabled });
-var configureManagers = function(_next) {
-  var amount = _.size(managers);
-  if(!amount)
-    return _next();
+    var Actor = require(actorsDir + actor.slug);
 
-  var next = _.after(amount, _next);
-  _.each(managers, function(conf) {
-    conf.exchange = conf.exchange.toLowerCase();
+    if(!actor.silent) {
+      console.log();
+      log.info('Setting up:');
+      log.info('\t', actor.name);
+      log.info('\t', actor.description);
+      console.log();
+    }
 
-    // make sure we the exchange is configured correctly
-    // for trading.
-    var invalid = exchangeChecker.cantTrade(conf);
-    if(invalid)
-      throw invalid;
+    if(actor.async) {
+      var instance = new Actor(util.defer(next));
 
-    log.info(
-      'Trading for real money based on market advice at',
-      conf.exchange
+      instance.meta = actor;
+      actors.push(instance);
+
+    } else {
+      var instance = new Actor;
+
+      instance.meta = actor;
+      actors.push(instance);
+
+      _.defer(next);
+    }
+  }
+
+  async.eachSeries(
+    actorSettings,
+    iterator,
+    next
+  );
+};
+
+// advisor is a special actor in that it spawns an
+// advice feed. Which everyone can subscribe to.
+var setupAdvisor = function(next) {
+
+  var settings;
+
+  var actor = _.find(actors, function(advisor) {
+    if(!advisor.meta.originates)
+      return false;
+
+    settings = _.find(
+      advisor.meta.originates,
+      function(o) {
+        return o.feed === 'advice feed'
+      }
     );
-
-    var manager = new Manager(conf);
-
-    consultant.on('advice', manager.trade);
-    manager.on('ready', next);
+    return settings;
   });
+
+  advisor = actor[settings.object];
+
+  next();
 }
 
+var watchFeeds = function(next) {
+  _.each(actors, function(actor) {
+    var subscriptions = actor.meta.subscriptions;
 
-//
-// Configure automatic email on advice.
-//
-var configureMail = function(next) {
-  if(config.mail.enabled && config.mail.email) {
-    var mailer = require('./mailer');
-    mailer.init(function() {
-      consultant.on('advice', mailer.send);
-      next();
-    });
-  } else
-    next();
+    if(_.contains(subscriptions, 'market feed')) {
+
+      if(actor.processCandle)
+        market.on('candle', actor.processCandle);
+      if(actor.processSmallCandle)
+        market.on('small candle', actor.processSmallCandle);
+      if(actor.processTrade)
+        market.on('trade', actor.processTrade);
+      if(actor.init)
+        market.on('history', actor.init);
+    }
+
+    if(_.contains(subscriptions, 'advice feed')) {
+
+      if(actor.processAdvice)
+        advisor.on('advice', actor.processAdvice);
+      
+    }
+  });
+
+  next();
 }
 
-var start = function() {
-  consultant.emit('prepare');
-}
-
-async.series([configureMail, configureManagers], start);
+async.series(
+  [
+    loadActors,
+    setupAdvisor,
+    setupMarket,
+    watchFeeds
+  ],
+  function() {
+    // everything is setup!
+    market.start();
+  }
+);

@@ -1,9 +1,9 @@
 var BTCE = require('btc-e');
 
 var moment = require('moment');
-var util = require('../util');
+var util = require('../core/util');
 var _ = require('lodash');
-var log = require('../log')
+var log = require('../core/log')
 
 var Trader = function(config) {
   this.key = config.key;
@@ -56,15 +56,28 @@ Trader.prototype.sell = function(amount, price, callback) {
   }, this), 1000);
 }
 
-// if BTC-e errors we try the same call again after
-// 5 seconds or half a second if there is haste
-Trader.prototype.retry = function(method, callback, haste) {
-  var wait = +moment.duration(haste ? 0.5 : 5, 'seconds');
-  log.debug(this.name , 'returned an error, retrying..');
+// if the exchange errors we try the same call again after
+// waiting 10 seconds
+Trader.prototype.retry = function(method, args) {
+  var wait = +moment.duration(10, 'seconds');
+  log.debug(this.name, 'returned an error, retrying..');
+
+  var self = this;
+
+  // make sure the callback (and any other fn)
+  // is bound to Trader
+  _.each(args, function(arg, i) {
+    if(_.isFunction(arg))
+      args[i] = _.bind(arg, self);
+  });
+
+  console.log(method, args);
+
+  // run the failed method again with the same
+  // arguments after wait
   setTimeout(
-    _.bind(method, this),
-    wait,
-    _.bind(callback, this)
+    function() { method.apply(self, args) },
+    wait
   );
 }
 
@@ -107,7 +120,7 @@ Trader.prototype.checkOrder = function(order, callback) {
     // right now we assume on every error that the order
     // was filled.
     //
-    // TODO: check whether the error stats that there are no
+    // TODO: check whether the error states that there are no
     // open trades or that there is something else.
     if(err)
       callback(false, true);
@@ -125,9 +138,10 @@ Trader.prototype.cancelOrder = function(order) {
 }
 
 Trader.prototype.getTrades = function(since, callback, descending) {
+  var args = _.toArray(arguments);
   var process = function(err, trades) {
     if(err)
-      return this.retry(this.btce.getTrades, process);
+      return this.retry(this.getTrades, args);
 
     if(descending)
       callback(false, trades);

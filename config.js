@@ -1,4 +1,4 @@
-// Everything is explained here:
+﻿// Everything is explained here:
 // https://github.com/askmike/gekko/blob/master/docs/Configuring_gekko.md
 
 var config = {};
@@ -7,13 +7,22 @@ var config = {};
 //                           NORMAL ZONE
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// Gekko currently only supports Exponential Moving Averages
-config.tradingMethod = 'Exponential Moving Averages';
+// Gekko stores historical history
+config.history = {
+  // in what directory should Gekko store
+  // and load historical data from?
+  directory: './history/'
+}
+
+config.tradingAdvisor = {
+  enabled: true,
+  method: 'moving average convergence divergence',
+  methodSlug: 'MACD',
+  candleSize: 2
+}
 
 // Exponential Moving Averages settings:
 config.EMA = {
-  // timeframe per candle
-  interval: 3, // in minutes
   // EMA weight (α)
   // the higher the weight, the more smooth (and delayed) the line
   short: 10,
@@ -21,16 +30,37 @@ config.EMA = {
   // amount of candles to remember and base initial EMAs on
   candles: 100,
   // the difference between the EMAs (to act as triggers)
-  sellTreshold: -0.25,
-  buyTreshold: 0.25
+  sellTreshold: -0.1,
+  buyTreshold: 0.1
+};
+
+// MACD settings:
+config.MACD = {
+  // timeframe per candle
+  interval: 1, // in minutes
+  // EMA weight (α)
+  // the higher the weight, the more smooth (and delayed) the line
+  short: 10,
+  long: 21,
+  signal: 9,
+  // amount of candles to remember and base initial EMAs on
+  candles: 25,
+  // the difference between the EMAs (to act as triggers)
+  sellTreshold: -0.025,
+  buyTreshold: 0.025,
+  // How many candle intervals until trigger fires
+  persistence: 5,
+  // Provide debugging output / verbose output
+  debug: false,
+  verbose: true
 };
 
 // Monitor the live market
 config.normal = {
   enabled: true,
   exchange: 'btce', // 'MtGox', 'BTCe', 'Bitstamp' or 'cexio'
-  currency: 'USD',
-  asset: 'PPC',
+  currency: 'BTC',
+  asset: 'TRC',
   tradingEnabled: false,
   key: 'your-key',
   secret: 'your-secret',
@@ -38,10 +68,9 @@ config.normal = {
 }
 
 // want Gekko to send a mail on buy or sell advice?
-config.mail = {
+config.mailer = {
   enabled: false,
   sendMailOnStart: true,
-  what: ['BUY', 'SELL'], // send email by type of advice: any combination of 'BUY', 'SELL', 'HOLD'
   email: '', // only works for Gmail or Google apps accounts at the moment
 
   // You don't have to set your password here, if you leave it blank we will ask it
@@ -57,7 +86,7 @@ config.mail = {
 }
 
 // do you want Gekko to calculate the profit of its own advice?
-config.profitCalculator = {
+config.profitSimulator = {
   enabled: true,
   // report the profit in the currency or the asset?
   reportInCurrency: true,
@@ -71,6 +100,17 @@ config.profitCalculator = {
   verbose: false,
   // how much fee in % does each trade cost?
   fee: 0.6
+}
+
+config.adviceLogger = {
+  enabled: true
+}
+
+config.ircbot = {
+  enabled: false,
+  channel: '#gekkobot',
+  server: 'irc.freenode.net',
+  botName: 'gekkobot'
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

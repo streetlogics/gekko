@@ -21,7 +21,7 @@ var config = util.getConfig();
 var exchangeChecker = require('./exchangeChecker');
 
 var provider = config.watch.exchange.toLowerCase();
-var DataProvider = require('./exchanges/' + provider);
+var DataProvider = require('../exchanges/' + provider);
 
 var Fetcher = function() {
   _.bindAll(this);
@@ -51,9 +51,9 @@ var Fetcher = function() {
         'Fetched',
         _.size(a.all),
         'new trades, from',
-        a.start.format('HH:mm:ss (UTC)'),
+        a.start.format('YYYY-MM-DD HH:mm:ss (UTC)'),
         'to',
-        a.end.format('HH:mm:ss (UTC)')
+        a.end.format('YYYY-MM-DD HH:mm:ss (UTC)')
       );
     });  
   }
@@ -78,10 +78,10 @@ Fetcher.prototype.start = function() {
 // Set the first & last trade date and set the
 // timespan between them.
 Fetcher.prototype.setFetchMeta = function(trades) {
-  var first = _.first(trades); 
-  this.first = moment.unix(first.date).utc();
-  var last = _.last(trades);
-  this.last = moment.unix(last.date).utc();
+  this.firstTrade = _.first(trades); 
+  this.first = moment.unix(this.firstTrade.date).utc();
+  this.lastTrade = _.last(trades);
+  this.last = moment.unix(this.lastTrade.date).utc();
 
   this.fetchTimespan = util.calculateTimespan(this.first, this.last);
 }
@@ -110,6 +110,8 @@ Fetcher.prototype.calculateNextFetch = function(trades) {
       config.EMA.interval
     ]);
     this.fetchAfter = util.minToMs(min);
+    // debugging bitstamp
+    this.fetchAfter = util.minToMs(1);
     return;  
   }
     
@@ -118,7 +120,7 @@ Fetcher.prototype.calculateNextFetch = function(trades) {
   // if we got the last 100 seconds of trades last
   // time make sure we fetch at least in 55 seconds
   // again.
-  var safeTreshold = 0.55;
+  var safeTreshold = 0.2;
   var defaultFetchTime = util.minToMs(1);
 
   if(this.fetchTimespan * safeTreshold > minimalInterval)
@@ -137,11 +139,11 @@ Fetcher.prototype.calculateNextFetch = function(trades) {
 }
 
 Fetcher.prototype.scheduleNextFetch = function() {
-  log.debug('Scheduling next fetch: in', util.msToMin(this.fetchAfter), 'minutes');
   setTimeout(this.fetch, this.fetchAfter);
 }
 
 Fetcher.prototype.fetch = function(since) {
+  log.debug('Requested trade data from', this.exchange.name, '...');
   this.watcher.getTrades(since, this.processTrades, false);
 }
 
@@ -159,8 +161,11 @@ Fetcher.prototype.processTrades = function(err, trades) {
     console.log('wup wup refetching NOW because this exchange supports it');
 
   this.emit('new trades', {
+    timespan: this.fetchTimespan,
     start: this.first,
+    first: this.firstTrade,
     end: this.last,
+    last: this.lastTrade,
     all: trades,
     nextIn: this.fetchAfter
   });
