@@ -16,9 +16,10 @@ config.history = {
 
 config.tradingAdvisor = {
   enabled: true,
-  method: 'moving average convergence divergence',
-  methodSlug: 'MACD',
-  candleSize: 2
+  method: 'Exponential Moving Average Crossovers',
+  methodSlug: 'EMA',
+  candleSize: 5,
+  historySize: 20
 }
 
 // Exponential Moving Averages settings:
@@ -28,7 +29,6 @@ config.EMA = {
   short: 10,
   long: 21,
   // amount of candles to remember and base initial EMAs on
-  candles: 100,
   // the difference between the EMAs (to act as triggers)
   sellTreshold: -0.1,
   buyTreshold: 0.1
@@ -43,15 +43,12 @@ config.MACD = {
   short: 10,
   long: 21,
   signal: 9,
-  // amount of candles to remember and base initial EMAs on
-  candles: 25,
   // the difference between the EMAs (to act as triggers)
-  sellTreshold: -0.025,
-  buyTreshold: 0.025,
+  sellThreshold: -0.025,
+  buyThreshold: 0.025,
   // How many candle intervals until trigger fires
   persistence: 5,
   // Provide debugging output / verbose output
-  debug: false,
   verbose: true
 };
 
@@ -69,9 +66,10 @@ config.normal = {
 
 // want Gekko to send a mail on buy or sell advice?
 config.mailer = {
-  enabled: false,
-  sendMailOnStart: true,
-  email: '', // only works for Gmail or Google apps accounts at the moment
+  enabled: false, 			// Send Emails if true, false to turn off
+  sendMailOnStart: true,		// Send 'Gekko starting' message if true, not if false
+
+  Email: 'me@gmail.com',		// Your GMail address
 
   // You don't have to set your password here, if you leave it blank we will ask it
   // when Gekko's starts.
@@ -81,9 +79,25 @@ config.mailer = {
   // fill in your email and password.
   //
   // WARNING: If you have NOT downloaded Gekko from the github page above we CANNOT
-  // garantuee that your email address & password are safe!
-  password: ''
+  // guarantuee that your email address & password are safe!
+
+  password: '',				// Your GMail Password - if not supplied Gekko will prompt on startup.
+
+  tag: '[GEKKO] ',			// Prefix all EMail subject lines with this
+
+  // Non-GMail settings - If you are not using GMail you will need to enter the appropriate values below.
+  server: 'smtp.gmail.com',		// The name of YOUR outbound (SMTP) mail server.  
+  smtpauth: true,			// Does SMTP server require authentication (true for GMail)
+					// The following 3 values default to the Email (above) if left blank
+  user: '',				// Your Email server user name - usually your full Email address 'me@mydomain.com'
+  from: '',				// 'me@mydomain.com'
+  to: '',				// 'me@somedomain.com, me@someotherdomain.com'
+  ssl: true,				// Use SSL (true for GMail)
+  port: '',				// Set if you don't want to use the default port 
+  tls: false				// Use TLS if true
+ 
 }
+
 
 // do you want Gekko to calculate the profit of its own advice?
 config.profitSimulator = {
@@ -108,10 +122,26 @@ config.adviceLogger = {
 
 config.ircbot = {
   enabled: false,
-  channel: '#gekkobot',
+  emitUpdats: false,
+  channel: '#your-channel',
   server: 'irc.freenode.net',
   botName: 'gekkobot'
 }
+
+
+config.webserver = {
+  enabled: false,
+  ws: {
+    host: 'localhost',
+    port: 1338,
+  },
+  http: {
+    host: 'localhost',
+    port: 1339,
+  }
+
+}
+
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //                           ADVANCED ZONE

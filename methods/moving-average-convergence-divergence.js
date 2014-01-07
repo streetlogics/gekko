@@ -15,19 +15,11 @@ var settings = config.MACD;
 
 var EMA = require('./indicators/exponantial-moving-average.js');
 
-var backtesting = config.backtest.enabled;
-if(backtesting)
-  throw ':(';
-// settings = _.extend(settings, config.backtest);
-
 var TradingMethod = function () {
   _.bindAll(this);
 
-  this.currentTrend;
-  log.info('Using MACD method');
-
-  this.currentTrend;
-  this.trendDuration = 1; // Needs to be 1 so trend fires on first candle if persistence=1
+  this.currentTrend = 'none';
+  this.trendDuration = 0;
 
   this.diff;
   this.ema = {
@@ -70,14 +62,19 @@ TradingMethod.prototype.calculateEMAs = function (candle) {
   this.ema['signal'].update(this.diff);
 }
 
-// for debugging purposes: log the last calculated
-// EMAs and diff.
+// for debugging purposes log the last 
+// calculated parameters.
 TradingMethod.prototype.log = function () {
-  log.debug('calced EMA properties for candle:');
-  _.each(['short', 'long', 'signal'], function (e) {
-    log.debug('\t', e, 'ema', this.ema[e].result.toFixed(8));
-  }, this);
-  log.debug('\t macd', this.diff.toFixed(4));
+  var digits = 8;
+  var macd = this.diff;
+  var signal = this.ema.signal.result;
+
+  log.debug('calced MACD properties for candle:');
+  log.debug('\t', 'short:', this.ema.short.result.toFixed(digits));
+  log.debug('\t', 'long:', this.ema.long.result.toFixed(digits));
+  log.debug('\t', 'macd:', macd.toFixed(digits));
+  log.debug('\t', 'signal:', signal.toFixed(digits));
+  log.debug('\t', 'macdiff:', (macd - signal).toFixed(digits));  
 }
 
 
@@ -89,24 +86,19 @@ TradingMethod.prototype.calculateEMAdiff = function () {
 }
 
 TradingMethod.prototype.calculateAdvice = function () {
-  // @ cexio we need to be more precise due to low prices
-  // and low margins on trade.  All others use 3 digits.
+  var digits = 8;
 
-
-  var digits = 3;
-  if(config.normal.exchange === 'cexio')
-    digits = 8;
-
-  var macd = this.diff.toFixed(3),
+  var macd = this.diff,
     price = this.lastCandle.c.toFixed(digits),
-    signal = this.ema.signal.result.toFixed(3),
     long = this.ema.long.result.toFixed(digits),
     short = this.ema.short.result.toFixed(digits),
+    signal = this.ema.signal.result,
     macddiff = macd - signal;
 
-  if(settings.debug) log.info('Calculated MACD/diff: ' + macd + '/' + macddiff);
-
-  macddiff = macddiff.toFixed(3);
+// following figures are all percentages so less digits needed
+    digits = 3;
+    macddiff = macddiff.toFixed(digits);
+    signal = signal.toFixed(digits);
 
   if(typeof price === 'string')
     price = parseFloat(price);
@@ -119,44 +111,47 @@ TradingMethod.prototype.calculateAdvice = function () {
   if(config.backtest.enabled)
     message += '\tat \t' + moment.unix(this.currentTimestamp).format('YYYY-MM-DD HH:mm:ss');
 
-  if(macddiff > settings.buyTreshold) {
-    if(settings.debug) log.info('we are currently in an uptrend duration ' + this.trendDuration + '\n', message);
+  if(macddiff > settings.buyThreshold) {
 
-    if(this.currentTrend !== 'up') {
-      if(this.trendDuration < settings.persistence)
-        this.trendDuration += 1
-      else {
+    if (this.currentTrend === 'down') this.trendDuration = 0;
+
+    this.trendDuration += 1;
+
+    if (this.trendDuration < settings.persistence )
+      this.currentTrend = 'PendingUp';
+
+    if ((this.currentTrend !== 'up') && (this.trendDuration >= settings.persistence)) {
         this.currentTrend = 'up';
         this.advice('long');
-        if(settings.verbose) log.info('advice - BUY' + message);
-        this.trendDuration = 1;
-      }
-    } else
+        message = 'MACD advice - BUY' + message;
+    }
+    else
       this.advice();
-    message = message + ', UT: ' + this.trendDuration;
+    
+  } else if(macddiff < settings.sellThreshold) {
 
-  } else if(macddiff < settings.sellTreshold) {
-    if(settings.debug) log.info('we are currently in a downtrend duration' + this.trendDuration + '\n', message);
+    if (this.currentTrend === 'up') this.trendDuration = 0;
 
-    if(this.currentTrend !== 'down') {
-      if(this.trendDuration < settings.persistence)
-        this.trendDuration += 1
-      else {
+    this.trendDuration += 1
+    if (this.trendDuration < settings.persistence )
+       this.currentTrend = 'PendingDown';
+
+    if ((this.currentTrend !== 'down')  && (this.trendDuration >= settings.persistence)) {
         this.currentTrend = 'down';
         this.advice('short');
-        // if(settings.verbose) log.info('advice - SELL' + message);
-        this.trendDuration = 1;
-      }
-    } else
+        message = 'MACD Advice - SELL' + message;
+    }
+    else
       this.advice();
-    message = message + ', DT: ' + this.trendDuration;
+
   } else {
-    // if(settings.debug) log.info('we are currently not in an up or down trend', message);
+    this.currentTrend = 'none';
     this.advice();
     // Trend has ended so reset counter
-    this.trendDuration = 1;
-    message = message + ', NT: ' + this.trendDuration;
+    this.trendDuration = 0;
   }
+  if(settings.verbose) 
+    log.info('MACD:' + message + ', Trend: ' + this.currentTrend + ', Duration: ' + this.trendDuration);
 
 }
 

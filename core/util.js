@@ -12,6 +12,7 @@ var util = {
     var path = require('path');
     var configFile = path.resolve(util.getArgument('config') || 'config.js');
     _config = require(configFile);
+    util.normalizeConfig();
     return _config;
   },
   // overwrite the whole config
@@ -99,6 +100,21 @@ var util = {
       var args = _.toArray(arguments);
       return _.defer(function() { fn.apply(this, args) });
     }
+  },
+  normalizeConfig: function() {
+    if(_config.normal && _config.normal.enabled) {
+      // if the normal settings are enabled we overwrite the
+      // watcher and traders set in the advanced zone
+      _config.watch = _config.normal;
+      _config.traders = [];
+
+      if(_config.normal.tradingEnabled)
+        _config.traders.push(_config.normal);
+    }
+  },
+  die: function(m) {
+    console.log('\n\n\n', m);
+    process.kill();
   }
 }
 

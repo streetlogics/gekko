@@ -1,8 +1,7 @@
 /*
 
   Gekko is a Bitcoin trading bot for popular Bitcoin exchanges written 
-  in node, it features multiple trading methods using 
-  technical analysis.
+  in node, it features multiple trading methods using technical analysis.
 
   Disclaimer:
 
@@ -19,46 +18,34 @@
 var coreDir = './core/';
 var actorsDir = './actors/';
 
-var moment = require('moment');
 var _ = require('lodash');
 var async = require('async');
 
 var util = require(coreDir + 'util');
 var log = require(coreDir + 'log');
 
+var config = util.getConfig();
+
 log.info('I\'m gonna make you rich, Bud Fox.', '\n\n');
 
-//
-// Normalize the configuration between normal & advanced.
-// 
-var config = util.getConfig();
-if(config.normal && config.normal.enabled) {
-  // if the normal settings are enabled we overwrite the
-  // watcher and traders set in the advanced zone
-  config.watch = config.normal;
-  config.traders = [];
-
-  if(config.normal.tradingEnabled)
-    config.traders.push(config.normal);
-}
-// write config
-util.setConfig(config);
-
-var exchangeChecker = require(coreDir + 'exchangeChecker');
-// make sure the monitoring exchange is configured correctly for monitoring
-var invalid = exchangeChecker.cantMonitor(config.watch);
-if(invalid)
-  throw invalid;
+var gekkoMode = 'realtime';
 
 // currently we only support a single 
 // market and a single advisor.
-var market;
-var advisor;
+
+// make sure the monitoring exchange is configured correctly for monitoring
+
+var exchangeChecker = require(coreDir + 'exchangeChecker');
+var invalid = exchangeChecker.cantMonitor(config.watch);
+if(invalid)
+  util.die(invalid);
+
 var actors = [];
+var emitters = {};
 
 var setupMarket = function(next) {
   var Market = require(coreDir + 'candleManager');
-  market = new Market;
+  emitters.market = new Market;
   next();
 }
 
@@ -67,7 +54,46 @@ var loadActors = function(next) {
   var actorSettings = require('./actors');
 
   var iterator = function(actor, next) {
+
+    // verify the actor settings in config
+    if(!(actor.slug in config)) {
+      log.warn('unable to find', actor.slug, 'in the config. Is your config up to date?')
+      return next();
+    }
+
+    // verify actor dependencies are installed
+    if('dependencies' in actor)
+      _.each(actor.dependencies, function(dep) {
+        try {
+          require(dep.module);
+        }
+        catch(e) {
+
+          var error = [
+            'The actor',
+            actor.slug,
+            'expects the module',
+            dep.module,
+            'to be installed.',
+            'However it is not, install',
+            'it by running: \n\n',
+            '\tnpm install',
+            dep.module + '@' + dep.version
+          ].join(' ');
+
+          util.die(error);
+        }
+
+      });
+
     var actorConfig = config[actor.slug];
+
+    // only load actors that are supported by
+    // Gekko's current mode
+    if(!_.contains(actor.modes, gekkoMode))
+      return next();
+
+    // if the actor is disabled skip as well
     if(!actorConfig.enabled)
       return next();
 
@@ -78,7 +104,6 @@ var loadActors = function(next) {
       log.info('Setting up:');
       log.info('\t', actor.name);
       log.info('\t', actor.description);
-      console.log();
     }
 
     if(actor.async) {
@@ -95,6 +120,9 @@ var loadActors = function(next) {
 
       _.defer(next);
     }
+
+    if(!actor.silent)
+      console.log();
   }
 
   async.eachSeries(
@@ -105,7 +133,7 @@ var loadActors = function(next) {
 };
 
 // advisor is a special actor in that it spawns an
-// advice feed. Which everyone can subscribe to.
+// advice feed which everyone can subscribe to.
 var setupAdvisor = function(next) {
 
   var settings;
@@ -123,47 +151,80 @@ var setupAdvisor = function(next) {
     return settings;
   });
 
-  advisor = actor[settings.object];
+  emitters.advisor = settings ? actor[settings.object] : false;
 
   next();
 }
 
-var watchFeeds = function(next) {
+var attachActors = function(next) {
+
+  var subscriptions = [
+    {
+      emitter: 'market',
+      event: 'candle',
+      handler: 'processCandle'
+    },
+    {
+      emitter: 'market',
+      event: 'small candle',
+      handler: 'processSmallCandle'
+    },
+    {
+      emitter: 'market',
+      event: 'trade',
+      handler: 'processTrade'
+    },
+    {
+      emitter: 'market',
+      event: 'history',
+      handler: 'processHistory'
+    },
+    {
+      emitter: 'advisor',
+      event: 'advice',
+      handler: 'processAdvice'
+    }
+  ];
+
   _.each(actors, function(actor) {
-    var subscriptions = actor.meta.subscriptions;
+    _.each(subscriptions, function(sub) {
 
-    if(_.contains(subscriptions, 'market feed')) {
+      if(sub.handler in actor) {
 
-      if(actor.processCandle)
-        market.on('candle', actor.processCandle);
-      if(actor.processSmallCandle)
-        market.on('small candle', actor.processSmallCandle);
-      if(actor.processTrade)
-        market.on('trade', actor.processTrade);
-      if(actor.init)
-        market.on('history', actor.init);
-    }
+        // if the actor wants to listen
+        // to something disabled
+        if(!emitters[sub.emitter])
+          log.warn([
+            actor.meta.name,
+            'wanted to listen to the',
+            sub.emitter + ',',
+            'however the',
+            sub.emitter,
+            'is disabled.'
+          ].join(' '))
+        else
+          // attach handler
+          emitters[sub.emitter]
+            .on(sub.event, actor[sub.handler]);
+      }
 
-    if(_.contains(subscriptions, 'advice feed')) {
-
-      if(actor.processAdvice)
-        advisor.on('advice', actor.processAdvice);
-      
-    }
+    });
   });
 
   next();
 }
+
+log.info('Setting up Gekko in', gekkoMode, 'mode');
 
 async.series(
   [
     loadActors,
     setupAdvisor,
     setupMarket,
-    watchFeeds
+    attachActors
   ],
   function() {
     // everything is setup!
-    market.start();
+    emitters.market.start();
   }
 );

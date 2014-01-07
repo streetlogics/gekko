@@ -22,18 +22,24 @@ Mailer.prototype.setup = function(done) {
       mailConfig.password = result.password;
     }
 
+    if (mailConfig.to === '' )  mailConfig.to = mailConfig.Email;
+    if (mailConfig.from === '' )  mailConfig.from = mailConfig.Email;
+    if ((mailConfig.user === '') && mailConfig.smtpauth)  mailConfig.user = mailConfig.Email;
+
     this.server = email.server.connect({
-      user: mailConfig.email,
+      user: mailConfig.user,
       password: mailConfig.password,
-      host: "smtp.gmail.com",
-      ssl: true
-    });
+      host: mailConfig.server,
+      ssl: mailConfig.ssl,
+      port: mailConfig.port,
+      tls: mailConfig.tls
+          });
 
     if(mailConfig.sendMailOnStart) {
       this.mail(
         "Gekko has started",
         [
-          "I've just started watching",
+          "I've just started watching ",
           config.watch.exchange,
           ' ',
           config.watch.currency,
@@ -46,13 +52,13 @@ Mailer.prototype.setup = function(done) {
           this.done();
         }, this)
       );
-    } else 
+    } else
       this.done();
 
     log.debug('Setup email adviser.');
   }
 
-  if(!config.password) {
+  if(!mailConfig.password && mailConfig.user) {
     // ask for the mail password
     var prompt = require('prompt-lite');
     prompt.start();
@@ -62,21 +68,22 @@ Mailer.prototype.setup = function(done) {
       '[ http://github.com/askmike/gekko ], you can take my word but always',
       'check the code yourself.',
       '\n\n\tWARNING: If you have not downloaded Gekko from the github page above we',
-      'CANNOT garantuee that your email address & password are safe!\n'
+      'CANNOT guarantuee that your email address & password are safe!\n'
     ].join('\n\t');
     log.warn(warning);
     prompt.get({name: 'password', hidden: true}, _.bind(setupMail, this));
   } else {
-    setupMail(false, false);
+    setupMail.call(this, false, false);
   }
 }
 
 Mailer.prototype.mail = function(subject, content, done) {
+
   this.server.send({
     text: content,
-    from: "Gekko <" + mailConfig.email + ">",
-    to: "Bud Fox <" + mailConfig.email + ">",
-    subject: subject
+    from: mailConfig.from,
+    to: mailConfig.to,
+    subject: mailConfig.tag + subject
   }, done || this.checkResults);
 }
 
@@ -86,9 +93,9 @@ Mailer.prototype.processTrade = function(trade) {
 
 Mailer.prototype.processAdvice = function(advice) {
   var text = [
-    'Gekko is watching',
+    'Gekko is watching ',
     config.watch.exchange,
-    'and has detected a new trend, advice is to go',
+    ' and has detected a new trend, advice is to go ',
     advice.recommandation,
     '.\n\nThe current ',
     config.watch.asset,
@@ -96,7 +103,7 @@ Mailer.prototype.processAdvice = function(advice) {
     this.price
   ].join('');
 
-  var subject = 'Gekko has new advice: go ' + advice.recommandation;
+  var subject = 'New advice: go ' + advice.recommandation;
 
   this.mail(subject, text);
 }

@@ -33,7 +33,7 @@ Manager.prototype.start = function() {
 
     // we pass a fetch to the model right away
     // so it knows how new the history needs to be
-    this.fetcher.once('new trades', this.model.init);
+    this.fetcher.once('new trades', this.model.checkHistory);
 
     this.fetcher.on('new trades', this.relayTrade);
     this.model.on('history', this.processHistory);
@@ -68,7 +68,8 @@ Manager.prototype.relayTrade = function(data) {
 }
 
 Manager.prototype.processHistory = function(history) {
-  var requiredHistory = util.minToMs(config.EMA.candles * config.EMA.interval);
+  var requiredHistory = util
+    .minToMs(config.tradingAdvisor.candleSize * config.tradingAdvisor.historySize);
 
   if(!this.exchange.providesHistory) {
     if(history.empty) {

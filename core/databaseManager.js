@@ -105,7 +105,7 @@ Util.inherits(Manager, EventEmitter);
 // load all databases we need based on fetch
 // data (which tells us how for we can currently
 // fetch back and thus what our limits are)
-Manager.prototype.init = function(data) {
+Manager.prototype.checkHistory = function(data) {
   this.setFetchMeta(data);
 
   // what do we need if we want to start right 
@@ -196,12 +196,12 @@ Manager.prototype.today = function() {
 Manager.prototype.processTrades = function(data) {
 
   this.setFetchMeta(data);
-  // first time make sure we have
-  // loaded this day.
+
+  // on the first fetch we need too be sure
+  // to load the daily DB
   if(!this.leftovers)
     this.loadDay(this.current.day);
 
-  // if first time
   if(!this.minumum) {
     // if we have history
     if(this.history.newest) {
@@ -220,8 +220,15 @@ Manager.prototype.processTrades = function(data) {
       var day = this.days[this.current.dayString];
       this.mostRecentCandle = day.endCandle;
     } else {
-      // store everything we might need
-      this.minumum = this.required.from.day.clone();
+
+      // store everything we might need 
+      // without going to yesterday
+      // (because if that day already exists we
+      // are overwriting those candles).
+      this.minumum = _.max([
+        this.required.from.day.clone(),
+        this.fetch.end.day.clone()
+      ]);
       // we don't have any candle yet
       this.mostRecentCandle = false;
     }
@@ -346,8 +353,6 @@ Manager.prototype.processTrades = function(data) {
       }));
     }, this);
 
-    this.firstBatch = true;
-
     // for every trade in a candle we've
     // added the candle, strip out all
     // candles except one candle per
@@ -360,23 +365,24 @@ Manager.prototype.processTrades = function(data) {
     // add candles:
     //       [gap between this batch & last inserted candle][batch][midnight]
     firstBatch = this.addEmtpyCandles(firstBatch, startFrom, MINUTES_IN_DAY);
-    this.storeCandles(firstBatch);
+    this.storeCandles(firstBatch, _.bind(function() {
 
-    this.firstBatch = false;
+      this.setDay(last.clone());
+      this.loadDay(this.current.day);
 
-    this.setDay(last.clone());
-    this.loadDay(this.current.day);
+      // add candles:
+      //       [midnight][batch]
+      var ghostCandle = _.clone(_.last(firstBatch) || this.mostRecentCandle);
+      ghostCandle.s = -1;
+      secondBatch = this.addEmtpyCandles(secondBatch, ghostCandle);
+      this.leftovers = secondBatch.pop();
 
-    // add candles:
-    //       [midnight][batch]
-    var ghostCandle = _.clone(_.last(firstBatch) || this.mostRecentCandle);
-    ghostCandle.s = -1;
-    secondBatch = this.addEmtpyCandles(secondBatch, ghostCandle);
-    this.leftovers = secondBatch.pop();
+      this.storeCandles(secondBatch);
 
-    this.storeCandles(secondBatch);
+    }, this));
 
   } else {
+    // all candles are from today
 
     // part of mega edgecase: we need to insert empty candles
     // from midnight to batch. To do this we need the price of
@@ -391,9 +397,21 @@ Manager.prototype.processTrades = function(data) {
       candles = this.addEmtpyCandles(candles, ghostCandle);
     } else {
 
-      var startFrom = this.mostRecentCandle;
+      var startFrom = _.clone(this.mostRecentCandle);
       if(startFrom.s > _.first(candles).s) {
-        throw 'Weird error';
+        // We're assuming that we've received candles for a new day
+        // with last batch being from previous day only. That's one
+        // possible cause of reaching this.
+        log.debug(
+          'Reached midnight edge case.',
+          'Assuming fresh new day and adding empty candles from midnight.',
+          'issue: https://github.com/askmike/gekko/issues/106',
+          'Most Recent Candle: ', startFrom.s,
+          'Parsing candles', _.pluck(candles, 's')
+        );
+
+        // Force creating of new empty candles
+        startFrom.s = -1;
       }
 
       // add candles:
@@ -410,17 +428,21 @@ Manager.prototype.processTrades = function(data) {
     console.log('why is this called without trades?');
 }
 
-Manager.prototype.storeCandles = function(candles) {
+
+// store a batch of candles under the day specified by
+// `this.current`. If cb is specified runs this after 
+// inserting all candles (inserts 1 per tick).
+Manager.prototype.storeCandles = function(candles, cb) {
   if(!_.size(candles))
-    return;
+    return cb ? cb() : false;
 
   // because this function is async make
   // sure we are using the right day.
   var day = _.clone(this.current);
 
   // broadcast each fake candle one per tick
-  // they need to be dealt with during this tick
-  // else the state will already be updated
+  // they should be dealt with during this tick
+  // because a new one may come on the next..
   var iterator = function(c, next) {
     this.defer(function() {
       log.debug(
@@ -442,8 +464,8 @@ Manager.prototype.storeCandles = function(candles) {
   var done = function() {
     // this was not the only batch for this trade
     // batch, another one coming up
-    if(this.firstBatch)
-      return;
+    if(cb)
+      return cb();
 
     if(this.leftovers)
       log.debug('Leftovers:', this.leftovers.s);
@@ -455,7 +477,7 @@ Manager.prototype.storeCandles = function(candles) {
     if(this.state === 'building history') {
       var last = this.minuteToMoment(
         this.mostRecentCandle.s,
-        this.current.day
+        day.day
       );
 
       if(this.required.to.m < last)
@@ -505,8 +527,10 @@ Manager.prototype.recheckHistory = function() {
   }
 
   var done = function(err) {
-    if(err)
-      throw 'Gekko expected the history to be complete, however it was not :(';
+    if(err) {
+      console.log('Gekko expected the history to be complete, however it was not :(')
+      throw err;
+    }
 
     this.broadcastHistory(err);
   }
@@ -566,7 +590,7 @@ Manager.prototype.addEmtpyCandles = function(candles, start, end) {
     var empty, prevClose;
 
     if(min > max)
-      throw 'Weird error...';
+      throw 'Weird error 2';
 
     while(min !== max) {
       empty = _.clone(c);
@@ -658,7 +682,14 @@ Manager.prototype.loadDays = function() {
     oldest: false
   };
 
-  var days = _.pluck(this.requiredDays(), 'm');
+  if(config.tradingAdvisor.enabled)
+    // the required history might span multiple
+    // days, get them all
+    var days = _.pluck(this.requiredDays(), 'm');
+  else
+    // the only history we are concerned
+    // about is today.
+    var days = [ this.current.day ];
 
   // load & verify each day
   var iterator = function(day) {
@@ -686,6 +717,10 @@ Manager.prototype.loadDays = function() {
 };
 
 Manager.prototype.broadcastHistory = function(err) {
+  // we don't have to deal with any history.
+  if(!config.tradingAdvisor.enabled)
+    this.state = 'realtime updating';
+
   var h = this.history;
 
   // run this when we don't have full history yet. 
@@ -694,7 +729,8 @@ Manager.prototype.broadcastHistory = function(err) {
   var bail = _.bind(function() {
     // in the future we will have the complete history
     // let's update the expectations
-    var requiredHistory = util.minToMs(config.EMA.candles * config.EMA.interval);
+    var requiredHistory = util
+      .minToMs(config.tradingAdvisor.historySize * config.tradingAdvisor.candleSize);
     if(h.oldest)
       var from = h.oldest.m.clone();
     else
@@ -797,7 +833,7 @@ Manager.prototype.calculateRealCandle = function(fakeCandles) {
 
   // create a fake candle based on all real candles
   var candle = _.reduce(
-    this.realCandleContents,
+    fakeCandles,
     function(candle, m) {
       m = m.candle;
       candle.h = _.max([candle.h, m.h]);
@@ -907,7 +943,6 @@ Manager.prototype.verifyDay = function(day, next) {
   if(day.full)
     return next(false);
 
-
   // is this the first day we need data from?
   var startDay = equals(this.required.from.day, day.time);
   // is this the last day we need data from?
@@ -989,7 +1024,6 @@ Manager.prototype.loadDay = function(mom, check, next) {
 
     return cb(null, day.string);
   }
-
   // it exists already
   day.handle = new nedb({filename: file, autoload: true});
   day.handle.ensureIndex({fieldName: 's', unique: true});
@@ -999,7 +1033,6 @@ Manager.prototype.loadDay = function(mom, check, next) {
   // set meta
   if(!check)
     return cb(null, day.string);
-
   this.setDayMeta(day, cb);
 }
 
