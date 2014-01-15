@@ -15,8 +15,9 @@
 
 */
 
-var coreDir = './core/';
-var actorsDir = './actors/';
+var gekkoDir = './';
+var coreDir = gekkoDir + 'core/';
+var actorsDir = gekkoDir + 'actors/';
 
 var _ = require('lodash');
 var async = require('async');
@@ -44,14 +45,14 @@ var actors = [];
 var emitters = {};
 
 var setupMarket = function(next) {
-  var Market = require(coreDir + 'candleManager');
+  var Market = require(coreDir + 'marketManager');
   emitters.market = new Market;
   next();
 }
 
 // load each actor
 var loadActors = function(next) {
-  var actorSettings = require('./actors');
+  var actorSettings = require(gekkoDir + 'actors');
 
   var iterator = function(actor, next) {
 
@@ -60,6 +61,17 @@ var loadActors = function(next) {
       log.warn('unable to find', actor.slug, 'in the config. Is your config up to date?')
       return next();
     }
+
+    var actorConfig = config[actor.slug];
+
+    // only load actors that are supported by
+    // Gekko's current mode
+    if(!_.contains(actor.modes, gekkoMode))
+      return next();
+
+    // if the actor is disabled skip as well
+    if(!actorConfig.enabled)
+      return next();
 
     // verify actor dependencies are installed
     if('dependencies' in actor)
@@ -86,21 +98,9 @@ var loadActors = function(next) {
 
       });
 
-    var actorConfig = config[actor.slug];
-
-    // only load actors that are supported by
-    // Gekko's current mode
-    if(!_.contains(actor.modes, gekkoMode))
-      return next();
-
-    // if the actor is disabled skip as well
-    if(!actorConfig.enabled)
-      return next();
-
     var Actor = require(actorsDir + actor.slug);
 
     if(!actor.silent) {
-      console.log();
       log.info('Setting up:');
       log.info('\t', actor.name);
       log.info('\t', actor.description);
@@ -158,33 +158,7 @@ var setupAdvisor = function(next) {
 
 var attachActors = function(next) {
 
-  var subscriptions = [
-    {
-      emitter: 'market',
-      event: 'candle',
-      handler: 'processCandle'
-    },
-    {
-      emitter: 'market',
-      event: 'small candle',
-      handler: 'processSmallCandle'
-    },
-    {
-      emitter: 'market',
-      event: 'trade',
-      handler: 'processTrade'
-    },
-    {
-      emitter: 'market',
-      event: 'history',
-      handler: 'processHistory'
-    },
-    {
-      emitter: 'advisor',
-      event: 'advice',
-      handler: 'processAdvice'
-    }
-  ];
+  var subscriptions = require(gekkoDir + 'subscriptions');
 
   _.each(actors, function(actor) {
     _.each(subscriptions, function(sub) {
@@ -215,6 +189,7 @@ var attachActors = function(next) {
 }
 
 log.info('Setting up Gekko in', gekkoMode, 'mode');
+console.log();
 
 async.series(
   [

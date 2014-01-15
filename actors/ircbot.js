@@ -15,6 +15,7 @@ var Actor = function() {
   });
 
   this.bot.addListener("message", this.verifyQuestion);
+  this.bot.addListener("error", this.logError);
 
   this.advice = 'Dont got one yet :(';
   this.adviceTime = utc();
@@ -109,7 +110,6 @@ Actor.prototype.emitPrice = function() {
 Actor.prototype.emitDonation = function() {
   var message = 'You want to donate? How nice of you! You can send your coins here:';
   message += '\nBTC:\t13r1jyivitShUiv9FJvjLH7Nh1ZZptumwW';
-  message += '\nDOGE:\tDH3n9PCmi5k2Mqs3LhDAmy4ySQ1N1xUg43';
 
   this.bot.say(ircbot.channel, message);
 };
@@ -138,12 +138,16 @@ Actor.prototype.emitRealAdvice = function() {
     'If you\'re not inside, you\'re outside!',
     'The most valuable commodity I know of is information.',
     'It\'s not a question of enough, pal. It\'s a zero sum game, somebody wins, somebody loses. Money itself isn\'t lost or made, it\'s simply transferred from one perception to another.',
-    'What’s worth doing is worth doing for money.',
+    'What’s worth doing is worth doing for money. (Wait, wasn\'t I a free and open source bot?)',
     'When I get a hold of the son of a bitch who leaked this, I’m gonna tear his eyeballs out and I’m gonna suck his fucking skull.'
   ];
 
   this.bot.say(ircbot.channel, _.first(_.shuffle(realAdvice)));
 }
+
+Actor.prototype.logError = function(message) {
+  log.error('IRC ERROR:', message);
+};
 
 
 module.exports = Actor;

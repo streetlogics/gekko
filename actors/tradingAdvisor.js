@@ -3,18 +3,27 @@ var log = require('../core/log');
 var _ = require('lodash');
 
 var config = util.getConfig();
-var Consultant = require('../methods/' + config.tradingAdvisor.method.toLowerCase().split(' ').join('-'));
+
+
+var methods = {
+  'MACD': 'moving-average-convergence-divergence',
+  'EMA': 'exponential-moving-average-crossovers'
+}
 
 var Actor = function() {
   _.bindAll(this);
 
-  log.info('\t', 'Using ' + config.tradingAdvisor.methodSlug + ' method');
+  var method = config.tradingAdvisor.method;
+  var fullMethod = methods[method];
+
+  if(!fullMethod)
+    util.die('Gekko doesn\'t know the method' + method);
+
+  log.info('\t', 'Using the trading method:' + method);
+
+  var Consultant = require('../methods/' + fullMethod);
 
   this.method = new Consultant;
-}
-
-Actor.prototype.processHistory = function(data) {
-  this.method.init(data);
 }
 
 Actor.prototype.processCandle = function(candle) {

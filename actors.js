@@ -29,7 +29,7 @@
 var actors = [
   {
     name: 'Trading Advisor',
-    description: 'Calculate trading advice based',
+    description: 'Calculate trading advice',
     slug: 'tradingAdvisor',
     async: false,
     silent: false,
@@ -81,6 +81,18 @@ var actors = [
     async: false,
     silent: true,
     modes: ['realtime', 'backtest']
+  },
+  {
+    name: 'Redis beacon',
+    slug: 'redisBeacon',
+    description: 'Publish events over Redis Pub/Sub',
+    async: true,
+    silent: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'redis',
+      version: '0.10.0'
+    }]
   }
 ];
 

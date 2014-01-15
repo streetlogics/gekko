@@ -16,8 +16,7 @@ config.history = {
 
 config.tradingAdvisor = {
   enabled: true,
-  method: 'Exponential Moving Average Crossovers',
-  methodSlug: 'EMA',
+  method: 'EMA',
   candleSize: 5,
   historySize: 20
 }
@@ -47,17 +46,15 @@ config.MACD = {
   sellThreshold: -0.025,
   buyThreshold: 0.025,
   // How many candle intervals until trigger fires
-  persistence: 5,
-  // Provide debugging output / verbose output
-  verbose: true
+  persistence: 5
 };
 
 // Monitor the live market
 config.normal = {
   enabled: true,
   exchange: 'btce', // 'MtGox', 'BTCe', 'Bitstamp' or 'cexio'
-  currency: 'BTC',
-  asset: 'TRC',
+  currency: 'USD',
+  asset: 'BTC',
   tradingEnabled: false,
   key: 'your-key',
   secret: 'your-secret',
@@ -128,6 +125,21 @@ config.ircbot = {
   botName: 'gekkobot'
 }
 
+config.redisBeacon = {
+  enabled: false,
+  port: 6379, // redis default
+  host: '127.0.0.1', // localhost
+    // On default Gekko broadcasts
+    // events in the channel with
+    // the name of the event, set
+    // an optional prefix to the
+    // channel name.
+  channelPrefix: '', 
+  broadcast: [
+    'small candle'
+  ]
+}
+
 
 config.webserver = {
   enabled: false,
@@ -157,9 +169,10 @@ config.webserver = {
 //                ADVISED TO MAKE REAL WORLD DECISIONS BASED ON THE RESULTS
 //                UNTIL THE CODE HAS BEEN PROVED SOLID.
 config.backtest = {
+  enabled: false,
   candleFile: 'candles.csv',
-  from: 0,
-  to: 0
+  from: '2013-10-01 00:00:00', // YYYY-MM-DD HH:mm:ss
+  to: '2013-11-01 00:00:00' // YYYY-MM-DD HH:mm:ss
 }
 
 // For when you want to monitor a market but want to act (trade) on a different one
