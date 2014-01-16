@@ -29,14 +29,12 @@ config.EMA = {
   long: 21,
   // amount of candles to remember and base initial EMAs on
   // the difference between the EMAs (to act as triggers)
-  sellTreshold: -0.1,
-  buyTreshold: 0.1
+  sellTreshold: -0.025,
+  buyTreshold: 0.025
 };
 
 // MACD settings:
 config.MACD = {
-  // timeframe per candle
-  interval: 1, // in minutes
   // EMA weight (α)
   // the higher the weight, the more smooth (and delayed) the line
   short: 10,
@@ -47,6 +45,22 @@ config.MACD = {
   buyThreshold: 0.025,
   // How many candle intervals until trigger fires
   persistence: 5
+};
+
+// PPO settings:
+config.PPO = {
+  // EMA weight (α)
+  // the higher the weight, the more smooth (and delayed) the line
+  short: 12,
+  long: 26,
+  signal: 9,
+  // the difference between the EMAs (to act as triggers)
+  sellThreshold: -0.3,
+  buyThreshold: 0.3,
+  // How many candle intervals until trigger fires
+  persistence: 1,
+  // Provide debugging output / verbose output
+  verbose: true
 };
 
 // Monitor the live market
@@ -140,7 +154,8 @@ config.redisBeacon = {
   ]
 }
 
-
+// not in a working state
+// read: https://github.com/askmike/gekko/issues/156
 config.webserver = {
   enabled: false,
   ws: {
