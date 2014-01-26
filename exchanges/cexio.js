@@ -26,7 +26,7 @@ Trader.prototype.getTrades = function(since, callback, descending) {
   var args = _.toArray(arguments);
   var process = function(err, trades) {
     if(err || !trades || trades.length === 0)
-      return this.retry(this.getTrades, args);
+      return this.retry(this.getTrades, args, err);
 
     var f = parseFloat;
 
@@ -65,7 +65,7 @@ Trader.prototype.sell = function(amount, price, callback) {
   // Prevent "You incorrectly entered one of fields."
   // because of more than 8 decimals.
   amount *= 100000000;
-  amount = Math.ceil(amount);
+  amount = Math.floor(amount);
   amount /= 100000000;
 
   // test placing orders which will not be filled
@@ -86,9 +86,14 @@ Trader.prototype.sell = function(amount, price, callback) {
   this.cexio.place_order('sell', amount, price, _.bind(set, this));
 }
 
-Trader.prototype.retry = function(method, args) {
+Trader.prototype.retry = function(method, args, err) {
   var wait = +moment.duration(10, 'seconds');
-  log.debug(this.name, 'returned an error, retrying..');
+  log.debug(this.name, 'returned an error, retrying..', err, 'waiting for', wait, 'ms');
+
+  if (!_.isFunction(method)) {
+    log.error(this.name, 'failed to retry, no method supplied.');
+    return;
+  }
 
   var self = this;
 
@@ -108,9 +113,10 @@ Trader.prototype.retry = function(method, args) {
 }
 
 Trader.prototype.getPortfolio = function(callback) {
+  var args = _.toArray(arguments);
   var calculate = function(err, data) {
     if(err)
-      return this.retry(this.cexio.getInfo, calculate);
+      return this.retry(this.getPortfolio, args, err);
 
     currency = parseFloat(data.BTC.available)
     if(parseFloat(data.BTC.orders)){
@@ -120,7 +126,7 @@ Trader.prototype.getPortfolio = function(callback) {
     if( parseFloat(data.GHS.orders)){
 	  assets -= parseFloat(data.GHS.orders);
     }
-	
+
     var portfolio = [];
     portfolio.push({name: 'BTC', amount: currency});
     portfolio.push({name: 'GHS', amount: assets});
@@ -169,7 +175,7 @@ Trader.prototype.cancelOrder = function(order) {
   var check= function(err, result) {
     if(err)
       log.error('cancel order failed:', err);
-    if(result.error)
+    if(typeof(result) !== 'undefined' && result.error)
       log.error('cancel order failed:', result.error);
   }
   this.cexio.cancel_order(order, check);

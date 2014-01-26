@@ -10,7 +10,7 @@ Configuring Gekko consists of three parts:
 
 ## Watching a realtime market
 
-It all starts with deciding which market you want Gekko to monitor, Gekko watches a single market and all advice / price information and other stuff is based on this market. A market is a currency/asset pair on a supported exchange. Examples are:
+It all starts with deciding which market you want Gekko to monitor, Gekko watches a single market and all advice and price information is based on this market. A market is a currency/asset pair on a supported exchange. Examples are:
 
 - USD/BTC on Mt. Gox
 - USD/BTC on BTC-e
@@ -53,14 +53,14 @@ Open up the config.js file inside the Gekko directory with a text editor and sea
   assets: BTC  
   markets: USD/BTC
   
-* cex.io:  
+* CEX.io:  
   currencies: BTC, *NMC (not yet supported)*  
   assets: GHS  
   markets: BTC/GHS
 
 ## Automate trading advice
 
-If you want Gekko to provide automated trading advice you need to configure this here. Note that this has unrelated to automatic trading, ~~though you need to calculate advice if you want to automate trading.~~
+If you want Gekko to provide automated trading advice you need to configure this here. Note that this has unrelated to automatic trading which is a plugin that creates order based on this advice. (So you need to calculate advice if you want to automate trading.)
 
 Gekko supports a number of technical analysis indicators, currently it supports:
 
@@ -68,7 +68,7 @@ Gekko supports a number of technical analysis indicators, currently it supports:
 - MACD
 - PPO
 
-Open up the config.js file again and look at this part:
+Open up the config.js file again and configure at this part:
 
     config.tradingAdvisor = {
       enabled: true,
@@ -169,6 +169,7 @@ Very similar to MACD but also a little different, read more [here](http://stockc
 
 Gekko currently has a couple plugins:
 
+- trader
 - advice logger
 - profit simulator
 - Mailer
@@ -178,6 +179,26 @@ Gekko currently has a couple plugins:
 ### NOTES
 
 When you turn on a plugin for the first time it might be that you need to install some additional dependencies. Copy paste what Gekko tells you!
+
+### Trader
+
+This plugin automatically creates orders based on the advice on the market it is watching. This turns Gekko into an automated trading bot. 
+
+Before Gekko can automatically trade you need to create API keys so that Gekko has the rights to create orders on your behalf, the rights Gekko needs are (naming differs per exchange): get info, get balance/portfolio, get open orders, get fee, buy, sell and cancel order. For all exchanges you need the API key and the API secret, for both Bitstamp and CEX.io you also need your username (which is a number at Bitstamp).
+
+Configure it like this:
+
+    config.trader = {
+      enabled: true,
+      key: 'your-api-key',
+      secret: 'your-api-secret',
+      username: 'your-username' // your username, only fill in when using bitstamp or cexio
+    }
+
+- enabled indicates whether this is on or off.
+- key is your API key.
+- secret is your API secret.
+- username is the username (only required for CEX.io and Bitstamp).
 
 ### Advice logger
 
@@ -216,14 +237,24 @@ Go to the config and configure it like this:
       // only want report after a sell? set to `false`.
       verbose: false,
       // how much fee in % does each trade cost?
-      fee: 0.6
+      fee: 0.6,
+      // how much slippage should Gekko assume per trade?
+      slippage: 0.1
     }
 
 - enabled indicates whether this is on or off.
-- reportInCurrency tells Gekko whether it should report in asset or in currency.
+- reportInCurrency tells Gekko whether it should report in asset or in the currency.
 - simulationBalance tells Gekko with what balance it should start.
-- verbose specifies how often Gekko should log the results.
+- verbose specifies how often Gekko should log the results (false is after every trade, true is after every candle).
 - fee is the exchange fee (in %) Gekko should take into considarion when simulating orders.
+- slippage is the costs in (in %) associated with not being able to buy / sell at market price.*
+
+
+*If you are trading a lot and you are buying 100% currency you might not get it all at market price and you have to walk the book in order to take that position. Also note that Gekko uses the candle close price and is unaware of the top asks bids, also take this into account. It is important that you set this number correctly or the resulted calculated profit be very wrong. Read more information [here](http://www.investopedia.com/terms/s/slippage.asp). Take these into consideration when setting a slippage:
+
+- How much spread is there normally on this market?
+- How thick is the top of the book normally?
+- How volatile is this market (the more volatility the bigger the change you will not get the price you expected)?
 
 The output will be something like:
 
@@ -310,7 +341,7 @@ The easiest way to configure Gekko is in the normal zone of the config:
 
 ### Redis beacon
 
-This is an advanced plugin only for programmers! If you are interested in this read more [here](https://github.com/askmike/gekko/blob/localDB/docs/internals/Actors.md#redis-beacon).
+This is an advanced plugin only for programmers! If you are interested in this read more [here](https://github.com/askmike/gekko/blob/localDB/docs/internals/plugins.md#redis-beacon).
 
     config.redisBeacon = {
       enabled: false,

@@ -13,7 +13,7 @@ config.history = {
   // and load historical data from?
   directory: './history/'
 }
-config.debug = true; // for additional logging / debugging
+config.debug = false; // for additional logging / debugging
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //                         WATCHING A MARKET
@@ -22,7 +22,7 @@ config.debug = true; // for additional logging / debugging
 // Monitor the live market
 config.watch = {
   enabled: true,
-  exchange: 'btce', // 'MtGox', 'BTCe', 'Bitstamp' or 'cexio'
+  exchange: 'Bitstamp', // 'MtGox', 'BTCe', 'Bitstamp' or 'cexio'
   currency: 'USD',
   asset: 'BTC'
 }
@@ -34,8 +34,8 @@ config.watch = {
 config.tradingAdvisor = {
   enabled: true,
   method: 'DEMA',
-  candleSize: 5,
-  historySize: 20
+  candleSize: 30,
+  historySize: 50
 }
 
 // Exponential Moving Averages settings:
@@ -84,6 +84,16 @@ config.PPO = {
 //                       CONFIGURING PLUGINS
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// Want Gekko to perform real trades on buy or sell advice?
+// Enabling this will activate trades for the market being
+// watched by config.watch
+config.trader = {
+  enabled: false,
+  key: '',
+  secret: '',
+  username: '' // your username, only fill in when using bitstamp or cexio
+}
+
 config.adviceLogger = {
   enabled: true
 }
@@ -102,7 +112,9 @@ config.profitSimulator = {
   // only want report after a sell? set to `false`.
   verbose: false,
   // how much fee in % does each trade cost?
-  fee: 0.6
+  fee: 0.6,
+  // how much slippage should Gekko assume per trade?
+  slippage: 0.05
 }
 
 // want Gekko to send a mail on buy or sell advice?
@@ -126,22 +138,22 @@ config.mailer = {
 
   tag: '[GEKKO] ',			// Prefix all EMail subject lines with this
 
-
             //       ADVANCED MAIL SETTINGS
             // you can leave those as is if you 
             // want to use gmail
 
-  server: 'smtp.gmail.com',		// The name of YOUR outbound (SMTP) mail server.  
+  // Non-GMail settings - If you are not using GMail you will need to enter the appropriate values below.
+  server: 'smtp.gmail.com',		// The name of YOUR outbound (SMTP) mail server.
   smtpauth: true,			// Does SMTP server require authentication (true for GMail)
 					// The following 3 values default to the Email (above) if left blank
   user: '',				// Your Email server user name - usually your full Email address 'me@mydomain.com'
   from: '',				// 'me@mydomain.com'
   to: '',				// 'me@somedomain.com, me@someotherdomain.com'
   ssl: true,				// Use SSL (true for GMail)
-  port: '',				// Set if you don't want to use the default port 
+  port: '',				// Set if you don't want to use the default port
   tls: false				// Use TLS if true
- 
 }
+
 
 config.ircbot = {
   enabled: false,
@@ -149,6 +161,15 @@ config.ircbot = {
   channel: '#your-channel',
   server: 'irc.freenode.net',
   botName: 'gekkobot'
+}
+
+config.campfire = {
+  enabled: false,
+  emitUpdates: false,
+  nickname: 'Gordon',
+  roomId: null,
+  apiKey: '',
+  account: ''
 }
 
 config.redisBeacon = {
@@ -160,7 +181,7 @@ config.redisBeacon = {
     // the name of the event, set
     // an optional prefix to the
     // channel name.
-  channelPrefix: '', 
+  channelPrefix: '',
   broadcast: [
     'small candle'
   ]
@@ -181,8 +202,10 @@ config.webserver = {
 }
 
 
+
+
 // not working, leave as is
-config.debug = {
+config.backtest = {
   enabled: false
 }
 

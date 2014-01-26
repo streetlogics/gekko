@@ -52,8 +52,20 @@ var actors = [
     }]
   },
   {
+    name: 'Campfire bot',
+    description: 'Campfire module lets you communicate with Gekko on Campfire.',
+    slug: 'campfire',
+    async: false,
+    silent: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'ranger',
+      version: '0.2.4'
+    }]
+  },
+  {
     name: 'Mailer',
-    description: 'Mail module lets sends you email yourself everytime Gekko has new advice',
+    description: 'Mail module lets sends you email yourself everytime Gekko has new advice.',
     slug: 'mailer',
     async: true,
     silent: false,
@@ -65,6 +77,22 @@ var actors = [
       module: 'prompt-lite',
       version: '0.1.1'
     }]
+  },
+  {
+    name: 'Trader',
+    description: 'Trader will follow the advice and create real orders.',
+    slug: 'trader',
+    async: true,
+    silent: false,
+    modes: ['realtime']
+  },
+  {
+    name: 'Profit Simulator',
+    description: 'Paper trader that logs fake profits.',
+    slug: 'profitSimulator',
+    async: false,
+    silent: false,
+    modes: ['realtime', 'backtest']
   },
   {
     name: 'Advice logger',

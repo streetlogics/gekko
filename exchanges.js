@@ -84,8 +84,7 @@ var exchanges = [
     requires: ['key', 'secret', 'username'],
     minimalOrder: { amount: 1, unit: 'currency' },
     providesHistory: false,
-    fetchTimespan: 60,
-    tradeError: 'https://github.com/askmike/gekko/issues/38#issuecomment-29552100'
+    fetchTimespan: 60
   },
   {
     name: 'CEX.io',

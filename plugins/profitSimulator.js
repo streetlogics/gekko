@@ -15,7 +15,7 @@ var Logger = function() {
   this.historyReceived = 0;
 
   this.verbose = calcConfig.verbose;
-  this.fee = 1 - calcConfig.fee / 100;
+  this.fee = 1 - (calcConfig.fee + calcConfig.slippage) / 100;
 
   this.currency = watchConfig.currency;
   this.asset = watchConfig.asset;
@@ -91,7 +91,7 @@ Logger.prototype.processAdvice = function(advice) {
   }
 
   // without verbose we report after round trip (buy-sell)
-  if(!this.verbose && what === 'short' && !config.backtest.enabled)
+  if(!this.verbose && what === 'short') // && !config.backtest.enabled)
     this.report();
 }
 
@@ -106,6 +106,9 @@ if(calcConfig.verbose)
  }
 
 Logger.prototype.report = function(timespan) {
+  if(!this.start.balance)
+    return log.warn('Unable to simulate profits without starting balance');
+
   if(this.reportInCurrency)
     this.current.balance = this.current.currency + this.price * this.current.asset;
   else
