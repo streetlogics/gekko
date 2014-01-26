@@ -23,14 +23,14 @@ var Actor = function(done) {
 
 // This actor is dynamically build based on
 // what the config specifies it should emit.
-// 
+//
 // This way we limit overhead because Gekko
 // only binds to events redis is going to
 // emit.
 
 var proto = {};
 _.each(redisBeacon.broadcast, function(e) {
-  // grab the corresponding subscription 
+  // grab the corresponding subscription
   var subscription = _.find(subscriptions, function(s) { return s.event === e });
 
   if(!subscription)
@@ -59,6 +59,7 @@ Actor.prototype.emit = function(channel, message) {
 
   var data = JSON.stringify(message);
   this.client.publish(channel, data);
+  this.client.set(channel, data);
 }
 
 module.exports = Actor;
