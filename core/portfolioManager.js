@@ -36,7 +36,11 @@ var Manager = function(conf) {
 
   this.directExchange = exchangeMeta.direct;
   this.infinityOrderExchange = exchangeMeta.infinityOrder;
-  this.minimalOrder = exchangeMeta.minimalOrder;
+
+  this.marketConfig = _.find(exchangeMeta.markets, function(p) {
+    return p.pair[0] === conf.currency && p.pair[1] === conf.asset;
+  });
+  this.minimalOrder = this.marketConfig.minimalOrder;
 
   this.currency = conf.currency;
   this.asset = conf.asset;
@@ -173,7 +177,7 @@ Manager.prototype.getMinimum = function(price) {
 Manager.prototype.buy = function(amount, price) {
   // sometimes cex.io specifies a price w/ > 8 decimals
   price *= 100000000;
-  price = Math.ceil(price);
+  price = Math.floor(price);
   price /= 100000000;
 
   var currency = this.getFund(this.currency);
@@ -195,7 +199,7 @@ Manager.prototype.buy = function(amount, price) {
   if(amount < minimum) {
     return log.info(
       'wanted to buy',
-      this.currency,
+      this.asset,
       'but the amount is to small',
       '(' + amount + ')',
       'at',
@@ -241,7 +245,7 @@ Manager.prototype.sell = function(amount, price) {
   if(amount < minimum) {
     return log.info(
       'wanted to buy',
-      this.asset,
+      this.currency,
       'but the amount is to small',
       '(' + amount + ')',
       'at',
@@ -284,7 +288,7 @@ Manager.prototype.checkOrder = function() {
       return;
     }
 
-    log.info(this.action, 'was succesfull');
+    log.info(this.action, 'was successfull');
   }
 
   this.exchange.checkOrder(this.order, _.bind(finish, this));
