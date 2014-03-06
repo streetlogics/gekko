@@ -1,8 +1,8 @@
 var MtGoxClient = require("mtgox-apiv2");
-var util = require('../util.js');
 var _ = require('lodash');
-var log = require('../log.js');
 var moment = require('moment');
+var util = require('../core/util.js');
+var log = require('../core/log');
 
 var Trader = function(config) {
   if(_.isObject(config)) {
@@ -20,25 +20,27 @@ var Trader = function(config) {
 }
 
 Trader.prototype.buy = function(amount, price, callback) {
-  this.mtgox.add('bid', amount, price, function(err, result) {
+  var process = function(err, result) {
     this.checkUnauthorized(err);
     // if Mt. Gox is down or lagging
     if(err || result.result === 'error')
       log.error('unable to buy (', err, result, ')');
 
-    callback(err, result.data);
-  });
+    callback(null, result.data);
+  };
+  this.mtgox.add('bid', amount, price, _.bind(process, this));
 }
 
 Trader.prototype.sell = function(amount, price, callback) {
-  this.mtgox.add('ask', amount, price, function(err, result) {
+  var process = function(err, result) {
     this.checkUnauthorized(err);
     // if Mt. Gox is down or lagging
     if(err || result.result === 'error')
       log.error('unable to sell (', err, result, ')');
 
-    callback(err, result.data);
-  });
+    callback(null, result.data);
+  };
+  this.mtgox.add('ask', amount, price, _.bind(process, this));
 }
 
 Trader.prototype.getTrades = function(since, callback, descending) {
@@ -55,9 +57,9 @@ Trader.prototype.getTrades = function(since, callback, descending) {
       return this.retry(this.getTrades, args);
 
     if(descending)
-      callback(trades.reverse());
+      callback(false, trades.reverse());
     else
-      callback(trades);
+      callback(false, trades);
   }, this));
 }
 
@@ -85,8 +87,8 @@ Trader.prototype.retry = function(method, args) {
 }
 
 Trader.prototype.checkUnauthorized = function(err) {
-  if(err === '[Error: Request failed with 403]')
-    throw 'It appears your ' + this.name + ' API key and secret are incorrect';
+  if(err && err.message === 'Request failed with 403')
+    util.die('It appears your ' + this.name + ' API key and secret are incorrect');
 }
 
 // calls callback with the following data structure:
