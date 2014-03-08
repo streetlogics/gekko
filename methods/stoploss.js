@@ -4,9 +4,9 @@
 //
 // https://github.com/askmike/gekko/blob/master/docs/trading_methods.md
 //
-// The example below is pretty stupid: on every new candle there is
-// a 10% chance it will recommand to change your position (to either
-// long or short).
+// This method can be used to let you manually set a stop loss limit that will
+//    trigger a sell if it's hit, or a buy if it's back over the low.
+
 // helpers
 var _ = require('lodash');
 var log = require('../core/log.js');
