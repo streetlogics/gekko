@@ -27,25 +27,21 @@ method.init = function() {
 
 // What happens on every new candle?
 method.update = function(candle) {
-  /* do nothing here */
-  if(this.lastPrice < settings.sell_price) {
-    if(this.currentTrend != 'short'){
-      // If it was long, set it to short
+  if(this.lastPrice < settings.sell_price && this.currentTrend != "short") {
+      // If it's below sell and not short, set it to short
       this.currentTrend = 'short';
       this.advice('short');
-    }else{
-      this.advice();
-    }
-
-  } else {
-    if(this.currentTrend != 'long'){
-      // If it was long, set it to short
+  } else if(this.currentTrend == 'short' && this.lastPrice < settings.buyback_price){
+      // If it was short, and price is below buyback, buy back in
       this.currentTrend = 'long';
       this.advice('long');
-    }else{
-      this.advice();
-    }
+      var old_buyback = settings.buyback_price;
+      settings.buyback_price = (1 -((settings.sell_price - settings.buyback_price) / settings.sell_price)) * settings.buyback_price;
+      settings.sell_price = old_buyback;
+  }else{
+    this.advice();
   }
+ 
 }
 
 // For debugging purposes.
