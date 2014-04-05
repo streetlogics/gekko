@@ -31,17 +31,17 @@ method.update = function(candle) {
       // If it's below sell and not short, set it to short
       this.currentTrend = 'short';
       this.advice('short');
-  } else if(this.currentTrend == 'short' && this.lastPrice < settings.buyback_price){
-      // If it was short, and price is below buyback, buy back in
-      this.currentTrend = 'long';
-      this.advice('long');
-      var old_buyback = settings.buyback_price;
-      settings.buyback_price = (1 -((settings.sell_price - settings.buyback_price) / settings.sell_price)) * settings.buyback_price;
-      settings.sell_price = old_buyback;
+  // } else if(this.currentTrend == 'short' && settings.buyback_price && this.lastPrice < settings.buyback_price){
+  //     // If it was short, and price is below buyback, buy back in
+  //     this.currentTrend = 'long';
+  //     this.advice('long');
+  //     var old_buyback = settings.buyback_price;
+  //     settings.buyback_price = (1 -((settings.sell_price - settings.buyback_price) / settings.sell_price)) * settings.buyback_price;
+  //     settings.sell_price = old_buyback;
   }else{
     this.advice();
   }
- 
+
 }
 
 // For debugging purposes.
