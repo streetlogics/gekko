@@ -12,17 +12,23 @@
   },
   "author": "Mike van Rossum <mike@mvr.me>",
   "dependencies": {
-    "mtgox-apiv2": "1.1.x",
+    "cryptsy-api": "0.1.x",
+    "mtgox-apiv2": "1.0.x",
     "lodash": "2.x",
     "moment": "2.4.x",
     "btc-e": "0.0.x",
     "cexio": "0.0.x",
     "bitstamp": "0.1.x",
+    "bitfinex": "git+https://github.com/naddison36/bitfinex.git",
     "async": "0.2.x",
     "nedb": "0.9.4",
     "line-reader": "0.2.x",
     "semver": "2.2.1",
-    "kraken-api" :"0.1.x"
+    "kraken-api": "0.1.x",
+    "lakebtc_nodejs": "0.1.x",
+	  "pushbullet": "1.4.3",
+    "mexbt": "0.0.x",
+    "poloniex.js": "0.0.6"
   },
   "devDependencies": {
     "nodeunit": "0.8.2"

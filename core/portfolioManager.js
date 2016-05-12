@@ -42,6 +42,7 @@ var Manager = function(conf) {
   });
   this.minimalOrder = this.marketConfig.minimalOrder;
 
+  this.tradePercent = conf.tradePercent;
   this.currency = conf.currency;
   this.asset = conf.asset;
 }
@@ -124,7 +125,9 @@ Manager.prototype.trade = function(what) {
   this.action = what;
 
   var act = function() {
-    var amount, price;
+    var amount, price, total_balance;
+
+    total_balance = this.getBalance(this.currency) + this.getBalance(this.asset) * this.ticker.bid;
 
     if(what === 'BUY') {
 
@@ -132,13 +135,18 @@ Manager.prototype.trade = function(what) {
       if(this.infinityOrderExchange)
         amount = 10000;
       else
-        amount = this.getBalance(this.currency) / this.ticker.ask;
+        amount = this.getBalance(this.currency) / (this.ticker.ask+(this.ticker.ask*this.fee));
 
       // can we just create a MKT order?
       if(this.directExchange)
         price = false;
       else
         price = this.ticker.ask;
+
+      if(this.tradePercent) {
+        log.debug('Trade Percent: adjusting amount', amount, 'by ', this.tradePercent, '%');
+        amount = amount * this.tradePercent / 100;
+      }
 
       this.buy(amount, price);
 
@@ -155,6 +163,11 @@ Manager.prototype.trade = function(what) {
         price = false;
       else
         price = this.ticker.bid;
+
+      if(this.tradePercent) {
+        log.debug('Trade Percent: adjusting amount', amount, 'by ', this.tradePercent, '%');
+        amount = amount * this.tradePercent / 100;
+      }
       
       this.sell(amount, price);
     }
@@ -184,20 +197,20 @@ Manager.prototype.buy = function(amount, price) {
 
   var currency = this.getFund(this.currency);
   var minimum = this.getMinimum(price);
-  var availabe = this.getBalance(this.currency) / price;
+  var available = this.getBalance(this.currency) / price;
 
   // if not suficient funds
-  if(amount > availabe) {
+  if(amount > available) {
     return log.info(
       'Wanted to buy but insufficient',
       this.currency,
-      '(' + availabe + ')',
+      '(' + available + ')',
       'at',
       this.exchange.name
     );
   }
 
-  // if order to small
+  // if order too small
   if(amount < minimum) {
     return log.info(
       'Wanted to buy',
@@ -229,20 +242,20 @@ Manager.prototype.sell = function(amount, price) {
   price /= 100000000;
 
   var minimum = this.getMinimum(price);
-  var availabe = this.getBalance(this.asset);
+  var available = this.getBalance(this.asset);
 
   // if not suficient funds
-  if(amount < availabe) {
+  if(amount > available) {
     return log.info(
       'Wanted to buy but insufficient',
       this.asset,
-      '(' + availabe + ')',
+      '(' + available + ')',
       'at',
       this.exchange.name
     );
   }
 
-  // if order to small
+  // if order too small
   if(amount < minimum) {
     return log.info(
       'Wanted to buy',

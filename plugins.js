@@ -12,7 +12,7 @@
 // Required parameters per actor.
 // 
 // name: Name of the actor
-// slug: filename of the actor, expected to be in `gekko/actors/`
+// slug: filename of the actor, expected to be in `gekko/plugins/`
 // description: text describing the actor. Unused on silent actors.
 // async: upon creating a new actor instance, does something async
 //    happen where Gekko needs to wait for? If set to true, the
@@ -76,6 +76,42 @@ var actors = [
     }, {
       module: 'prompt-lite',
       version: '0.1.1'
+    }]
+  },
+  {
+    name: 'Mandrill Mailer',
+    description: 'Mandrill Mail module lets sends you email yourself everytime Gekko has new advice.',
+    slug: 'mandrillMailer',
+    async: true,
+    silent: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'mandrill-api',
+      version: '1.0.40'
+    }]
+  },
+  {
+    name: 'Pushbullet',
+    description: 'Pushbullet module to text yourself everytime Gekko has new advice.',
+    slug: 'pushbullet',
+    async: true,
+    silent: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'pushbullet',
+      version: '0.1.0'
+    }]
+  },
+  {
+    name: 'SMS Plivo',
+    description: 'SMS module to text yourself everytime Gekko has new advice. Uses Plivo.',
+    slug: 'smsPlivo',
+    async: true,
+    silent: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'plivo',
+      version: '0.1.0'
     }]
   },
   {

@@ -22,7 +22,9 @@ config.debug = true; // for additional logging / debugging
 // Monitor the live market
 config.watch = {
   enabled: true,
-  exchange: 'Bitstamp', // 'MtGox', 'BTCe', 'Bitstamp', 'cexio' or 'kraken'
+  exchange: 'bitstamp', // @link https://github.com/askmike/gekko#supported-exchanges 
+  key: '',
+  secret: '',
   currency: 'USD',
   asset: 'BTC'
 }
@@ -112,6 +114,7 @@ config.custom = {
 // watched by config.watch
 config.trader = {
   enabled: false,
+  tradePercent: 10,
   key: '',
   secret: '',
   username: '' // your username, only fill in when using bitstamp or cexio
@@ -176,6 +179,25 @@ config.mailer = {
   tls: false        // Use TLS if true
 }
 
+config.mandrillMailer = {
+  enabled: false,
+  sendMailOnStart: true,
+  to: '', // to email
+  toName: 'Gekko user',
+  from: '', // from email
+  fromName: 'Gekko bot info',
+  apiKey: '', // Mandrill api key
+}
+
+config.smsPlivo = {
+  enabled: false,
+  sendMailOnStart: true,
+  smsPrefix: 'GEKKO:', // always start SMS message with this
+  to: '', // your SMS number
+  from: '', // SMS number to send from provided by Plivo
+  authId: '', // your Plivo auth ID
+  authToken: '' // your Plivo auth token
+}
 
 config.ircbot = {
   enabled: false,
@@ -207,6 +229,13 @@ config.redisBeacon = {
   broadcast: [
     'small candle'
   ]
+}
+
+config.pushbullet = {
+  enabled: true,
+  sendMailOnStart: true,
+  deviceId: '', // your Pushbullet device ID, sends to all devices if empty
+  authToken: '' // your Pushbullet auth token
 }
 
 // not in a working state

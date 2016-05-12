@@ -185,6 +185,30 @@ var exchanges = [
     providesHistory: false
   },
   {
+    name: 'Cryptsy',
+    slug: 'cryptsy',
+    direct: false,
+    infinityOrder: false,
+    currencies: ['BTC'],
+    assets: ['DOGE', 'DVC', 'PPC', 'LTC', 'DRK' ],
+    markets: [
+      {
+        pair: ['BTC', 'DOGE'], market_id: 132, minimalOrder: { amount: 100, unit: 'asset' }
+      },
+      {
+        pair: ['BTC', 'DVC'], market_id: 40, minimalOrder: { amount: 1, unit: 'asset' }
+      },
+      {
+        pair: ['BTC', 'LTC'], market_id: 3, minimalOrder: { amount: 0.001, unit: 'asset' }
+      },
+      {
+        pair: ['BTC', 'DRK'], market_id: 155, minimalOrder: { amount: 0.001, unit: 'asset' }
+      }
+    ],
+    requires: ['key', 'secret'],
+    providesHistory: false
+  },
+  {
     name: 'Kraken',
     slug: 'kraken',
     direct: false,
@@ -259,7 +283,74 @@ var exchanges = [
     requires: ['key', 'secret'],
     monitorError: 'https://github.com/askmike/gekko/issues/210',
     providesHistory: false
-  }
+  },
+  {
+    name: 'Bitfinex',
+    slug: 'bitfinex',
+    direct: false,
+    infinityOrder: false,
+    currencies: ['USD'],
+    assets: ['BTC'],
+    markets: [
+      {
+        pair: ['USD', 'BTC'], minimalOrder: { amount: 0.01, unit: 'currency' }
+      }
+    ],
+    requires: ['key', 'secret'],
+    // TODO: should be possible to enable this for Bitfinex?
+    providesHistory: false
+    // fetchTimespan: 60
+  },
+  {
+    name: 'LakeBTC',
+    slug: 'lakebtc',
+    direct: false,
+    infinityOrder: false,
+    currencies: ['USD'],
+    assets: ['BTC'],
+    markets: [
+      {
+        pair: ['USD', 'BTC'], minimalOrder: { amount: 1, unit: 'currency' }
+      }
+    ],
+    requires: ['key', 'secret'],
+    providesHistory: false,
+    fetchTimespan: 60
+  },
+  {
+    name: 'meXBT',
+    slug: 'mexbt',
+    direct: false,
+    infinityOrder: false,
+    currencies: ['MXN'],
+    assets: ['BTC'],
+    markets: [
+      {
+        pair: ['MXN', 'BTC'], minimalOrder: { amount: 0.01, unit: 'asset' }
+      }
+    ],
+    requires: ['key', 'secret', 'username'],
+    providesHistory: false
+  },
+  {
+    name: 'Poloniex',
+    slug: 'poloniex',
+    direct: false,
+    infinityOrder: false,
+    currencies: ['BTC', 'XMR', 'USDT'],
+    assets: ['BTC', 'XMR', 'ETH', 'FCT', 'MAID', 'DASH', 'XVC', 'GRC'],
+    markets: [
+      { pair: ['BTC', 'ETH'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+      { pair: ['BTC', 'XMR'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+      { pair: ['BTC', 'FCT'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+      { pair: ['BTC', 'MAID'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+      { pair: ['BTC', 'DASH'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+      { pair: ['BTC', 'XVC'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+      { pair: ['BTC', 'GRC'], minimalOrder: { amount: 0.01, unit: 'asset' } },
+    ],
+    requires: ['key', 'secret'],
+    providesHistory: 'date',
+  },
 ];
 
 module.exports = exchanges;
