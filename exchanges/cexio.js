@@ -118,6 +118,9 @@ Trader.prototype.getPortfolio = function(callback) {
     if(err)
       return this.retry(this.getPortfolio, args, err);
 
+    if(data.error)
+      throw data.error
+
     currency = parseFloat(data.BTC.available)
     if(parseFloat(data.BTC.orders)){
       currency -= parseFloat(data.BTC.orders)
